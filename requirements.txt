@@ -1,0 +1,37 @@
+# AdaEva: Python 3.10
+# Versions are those of the environment used for the experiments.
+# The upstream repositories in packages/ are NOT pip-installed; they are put on
+# PYTHONPATH (see README). This file covers src/ and the parts of packages/ it uses.
+
+# --- core numerics ---------------------------------------------------------
+numpy==2.2.6
+scipy==1.15.2
+pandas==2.2.3
+polars==1.43.2
+numba==0.65.0
+joblib==1.4.2
+
+# --- statistical tests (AdaEva-R) -----------------------------------------
+scikit-posthocs==0.14.0
+
+# --- LLM clients, config, logging -----------------------------------------
+requests==2.32.3
+python-dotenv==1.1.0
+PyYAML==6.0.2
+tqdm==4.66.5
+wandb==0.18.5            # optional, only with --use-wandb
+
+# --- continuous black-box optimisation (LLaMEA / BBOB) --------------------
+ioh==0.3.22
+iohinspector==0.0.8
+ConfigSpace==1.2.1       # imported by llamea.llm
+jsonlines==4.0.0         # imported by llamea
+lizard==1.23.0           # imported by llamea
+networkx==3.4.2          # imported by llamea
+pymoo==0.6.1.6           # imported by llamea (pareto archive)
+
+# --- TSP optimality gaps (analyses; builds from source, needs a C compiler) -
+pyconcorde @ git+https://github.com/jvkersch/pyconcorde@a573c1b73244f0dc7cf88ddd18ccfa4c65919974
+
+# --- plotting (analyses) ---------------------------------------------------
+matplotlib==3.10.1

@@ -1,0 +1,124 @@
+{
+  "heuristics": [
+    {
+      "cand_id": "gen00_cand00",
+      "gen_id": 0,
+      "score": 2091.64,
+      "source": "import numpy as np\n\ndef priority(item, bins):\n    if len(bins) == 0:\n        return np.array([])\n\n    # Prioritize bins with smaller remaining capacities to reduce fragmentation\n    # Score is inversely proportional to remaining capacity with a small bias for diversity\n    scores = 1.0 / (bins + 1) * (item + 1e-9)  # Small bias to avoid identical scores\n\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand01",
+      "gen_id": 0,
+      "score": 2091.96,
+      "source": "import numpy as np\nimport random\n\npriority_counter = 0  # Global counter to track time/density of assignments\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global priority_counter\n\n    # Objective: remaining capacity (to fit item) + diversity (time-based) - load (to escape local optima)\n    remaining = bins - item  # Capacity after placing item\n    diversity = np.exp(-0.01 * priority_counter) * np.ones_like(bins)  # Diversity factor\n    load = np.max(bins, initial=0) - bins  # Current load (small remaining load = higher priority)\n\n    # Normalize and weigh components\n    weights = np.array([0.6, 0.3, 0.1])  # Adjust weights for performance (e.g., 60% fit, 30% diversity, 10% load)\n    normalized_remaining = remaining / np.sum(remaining)\n    normalized_load = load / np.sum(load)\n\n    scores = weights[0] * normalized_remaining + weights[1] * diversity + weights[2] * normalized_load\n    priority_counter += 1\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand02",
+      "gen_id": 0,
+      "score": 2098.44,
+      "source": "import numpy as np\n\ndef priority(item, bins):\n    if bins.size == 0:\n        return np.array([])\n\n    # Local optimality: prefer bins with smaller occupied capacity (less fragmentation)\n    occupied = bins.size - item  # Simulate occupied capacity after placing the item\n    local_scores = 1.0 / (occupied + 1.0)  # Avoid division by zero, lower = better fit\n\n    # Global search: bias towards bins with remaining capacities closer to the mean\n    mean_remaining = np.mean(bins.size)\n    std_remaining = np.std(bins.size) if np.std(bins.size) > 0 else 1  # Avoid division by zero\n    diversity_scores = np.exp(-0.5 * ((bins.size - mean_remaining) / std_remaining) ** 2)\n\n    # Hybrid score: simple weighted sum of local and diversity scores\n    alpha = min(1.0, max(0.1, 0.5 - 0.2 * np.log(bins.size)))  # Dynamic weight between 0.1 and 0.5\n    hybrid_scores = (1.0 - alpha) * local_scores + alpha * diversity_scores\n\n    # Renormalize to ensure higher scores are preferred\n    min_score = hybrid_scores.min()\n    max_score = hybrid_scores.max()\n    scores = (hybrid_scores - min_score) / (max_score - min_score + 1e-6)  # Avoid division by zero\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand03",
+      "gen_id": 0,
+      "score": 2137.72,
+      "source": "import numpy as np\n\ndef priority(item, bins):\n    gamma = 0.9  # Decay factor to consider long-term impact\n    scores = bins * (gamma ** (len(bins) - np.arange(len(bins))))  # Weight remaining capacity by recent assignments\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand04",
+      "gen_id": 0,
+      "score": 5000.0,
+      "source": "import numpy as np\n\ndef priority(item, bins):\n    if len(bins) == 0:\n        return np.array([])\n    # Compute the absolute difference between item size and bin's remaining capacity\n    diff = np.abs(bins - item)\n    # Compute the relative difference (item size / bin capacity) to bias larger bins\n    relative_diff = diff / bins\n    # Combine both metrics to balance immediate fit and long-term utilization\n    scores = relative_diff * np.log(bins + 1e-9)  # Avoid log(0) for empty bins\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand05",
+      "gen_id": 0,
+      "score": 2087.28,
+      "source": "import numpy as np\n\npriority_counter = 0  # Global counter to track time/density of assignments\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global priority_counter\n\n    # Sort bins by remaining capacity (descending) to get best-fit candidate\n    sorted_indices = np.argsort(bins)[::-1]\n    best_fit_remaining = bins[sorted_indices[0]]\n\n    # Calculate score: (1/remaining_capacity) + (load_factor * (bin_load - adjusted_urgency))\n    remaining_factor = (1 / (bins - item + 1e-6))  # +1e-6 to avoid division by zero\n    bin_load = np.max(bins, initial=0) - bins\n\n    # Load factor decreases exponentially (encourage exploration of lightly loaded bins early)\n    load_factor = np.exp(-0.005 * priority_counter)\n    adjusted_urgency = np.tan(np.linspace(-np.pi/4, np.pi/4, len(bins)) * priority_counter) * 0.1\n\n    # Weighted adjacency score (near best-fit bin gets higher priority)\n    positions = np.arange(len(bins))\n    scores = remaining_factor + (load_factor * (bin_load - adjusted_urgency)) + (np.sin(0.5 * (positions - positions.mean())) ** 2)\n\n    priority_counter += 1\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand06",
+      "gen_id": 0,
+      "score": 2091.52,
+      "source": "import numpy as np\n\ntime_counter = 0  # Tracks the number of assignments\ndiversity_weight = 0.5  # Initial diversity weight\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global time_counter, diversity_weight\n\n    if len(bins) == 0:\n        return np.array([])\n\n    # 1. Fit score (remaining capacity relative to current item)\n    fit_scores = (bins - item) / (np.max(bins) - item + 1e-9)  # Normalized fit score\n\n    # 2. Proximity to item size (avoid small bins becoming fragmented)\n    proximity_scores = np.exp(-0.5 * (np.abs(bins - item) / item - 1))  # Prefer exact fit\n\n    # 3. Adaptive urgency factor (increases weight on fit as more items are placed)\n    urgency_factor = np.log(1 + 0.01 * time_counter) * np.ones_like(bins)\n    time_counter += 1\n\n    # 4. Load penalty (penalize fuller bins)\n    load = bins / np.sum(bins)  # Normalized load\n    load_penalty = -load * np.log(load + 1e-9)\n\n    # 5. Combine metrics with dynamic weighting\n    weights = np.array([0.5 * np.exp(-0.01 * time_counter), 0.3, 0.2])  # Fit, proximity, load\n    scores = weights[0] * fit_scores + weights[1] * proximity_scores + diversity_weight * load_penalty\n\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand07",
+      "gen_id": 0,
+      "score": 2096.08,
+      "source": "import numpy as np\n\npriority_counter = 0\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global priority_counter\n\n    # Simplified score: focus on remaining capacity with slight exploration encouragement\n    remaining_factor = 1 / (bins - item + 1e-6)  # Exploitation: prefer bins with more remaining capacity\n    exploration_bonus = 0.1 * (np.random.rand(len(bins)) - 0.5)  # Exploration: random noise\n\n    # Combine factors with reduced time dependency\n    scores = remaining_factor + exploration_bonus\n\n    priority_counter += 1\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand08",
+      "gen_id": 0,
+      "score": 2183.8,
+      "source": "import numpy as np\n\npriority_counter = 0\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global priority_counter\n\n    remaining_factor = (1 / (bins - item + 1e-6))\n    bin_load = np.max(bins, initial=0) - bins\n    load_factor = np.exp(-0.001 * priority_counter)  # Simplified exponential decay\n    positions = np.arange(len(bins))\n    exploration_bonus = 1 / (1 + priority_counter)  # Inverse-time exploration bonus\n    scores = remaining_factor * load_factor + exploration_bonus * np.sin(0.5 * (positions - positions.mean()))\n\n    priority_counter += 1\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand09",
+      "gen_id": 0,
+      "score": 2195.24,
+      "source": "import numpy as np\n\ndiversity_counter = 0  # Tracks the number of assignments\nutilization_bias = 0.5  # Initial bias toward larger bins\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global diversity_counter, utilization_bias\n\n    if len(bins) == 0:\n        return np.array([])\n\n    # 1. Time-based diversity factor (decreases over time)\n    diversity_factor = np.exp(-0.005 * diversity_counter) * np.ones_like(bins)\n    diversity_counter += 1\n\n    # 2. Load penalty (penalize fuller bins)\n    load = bins / np.sum(bins)  # Normalized load\n    load_penalty = -load * np.log(load + 1e-9)\n\n    # 3. Adaptive bin utilization bias (favors larger bins more over time)\n    bin_sizes = np.max(bins, initial=0) + 1e-9  # Avoid division by zero\n    size_factor = np.log(bins / bin_sizes + 1e-9)  # Favor larger bins\n    utilization_bias = 0.7 * np.exp(-0.01 * diversity_counter) + 0.3  # Decreases over time\n\n    # 4. Combine metrics with dynamic weighting\n    weights = np.array([0.7, 0.2, 0.1])  # 70% fit, 20% diversity, 10% load\n    fit_scores = (bin_sizes - bins) / (bin_sizes - item)  # Prefer larger bins less crowded after item\n\n    scores = weights[0] * fit_scores + weights[1] * diversity_factor + utilization_bias * size_factor + weights[2] * load_penalty\n\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand10",
+      "gen_id": 0,
+      "score": 2087.0,
+      "source": "import numpy as np\n\npriority_counter = 0\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global priority_counter\n\n    remaining_factor = 1 / (bins - item + 1e-6)\n    bin_load = np.max(bins, initial=0) - bins\n    load_factor = np.exp(-0.01 * priority_counter)\n    adjusted_urgency = np.random.uniform(-0.1, 0.1, len(bins))\n\n    scores = remaining_factor + load_factor * bin_load + (adjusted_urgency > 0).astype(float) * np.tan(0.1 * priority_counter)\n    priority_counter += 1\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand11",
+      "gen_id": 0,
+      "score": 2093.96,
+      "source": "import numpy as np\n\npriority_counter = 0  # Global counter to track time\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global priority_counter\n\n    # Urgency: inverse of remaining capacity (with small epsilon to avoid division by zero)\n    urgency = 1 / (bins - item + 1e-6)\n\n    # Load imbalance penalty (penalize bins > 1/3 capacity)\n    bin_load = np.max(bins, initial=0) - bins\n    load_penalty = np.where(bin_load > bins / 3, 0.5, 0.1) * (bin_load - bins / 3)\n\n    # Time-based periodic switching (sine wave with dynamic amplitude)\n    positions = np.arange(len(bins))\n    time_amplitude = 0.3 * (1 + 0.1 * priority_counter)\n    periodic_switch = time_amplitude * np.sin(0.2 * (positions - len(bins) // 2))\n\n    # Composite score: urgency + load penalty + periodic switching\n    scores = urgency + (load_penalty * np.log(1 + priority_counter)) + periodic_switch\n\n    priority_counter += 1\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand12",
+      "gen_id": 0,
+      "score": 2094.32,
+      "source": "import numpy as np\n\ntime_counter = 0  # Global counter to track time\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global time_counter\n\n    # Sort bins by remaining capacity (descending) to get best-fit candidate\n    sorted_indices = np.argsort(bins)[::-1]\n    best_fit_remaining = bins[sorted_indices[0]]\n\n    # Calculate inverse remaining capacity\n    inverse_remaining = (1 / (bins - item + 1e-6))  # +1e-6 to avoid division by zero\n\n    # Bin load as the amount of space already occupied\n    bin_load = (np.max(bins, initial=0) - bins) / (np.max(bins, initial=0) + 1e-6)\n\n    # Load factor decreases exponentially (de-emphasize heavily loaded bins over time)\n    load_factor = np.exp(-0.01 * time_counter)\n\n    # Linear urgency term that increases over time\n    urgency = 0.5 * time_counter\n\n    # Weighted score with emphasis on inverse remaining capacity and load penalty\n    scores = inverse_remaining + (load_factor * bin_load) + (np.linspace(-1, 1, len(bins)) * urgency) + (np.sin(0.2 * (np.arange(len(bins)) - np.arange(len(bins)).mean())) ** 2)\n\n    time_counter += 1\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand13",
+      "gen_id": 0,
+      "score": 2096.16,
+      "source": "import numpy as np\n\ndecay_counter = 0\ndiversity_weight = 0.5\nfragmentation_weight = 0.3\n\ndef priority(item, bins):\n    global decay_counter, diversity_weight, fragmentation_weight\n\n    if len(bins) == 0:\n        return np.array([])\n\n    decay_factor = 0.9 ** decay_counter\n    decay_counter += 1\n\n    remaining_capacity = bins - item\n    normalized_remaining = remaining_capacity / np.sum(remaining_capacity)\n\n    proximity_score = np.exp(-0.5 * (np.abs(bins - item) / item - 1))\n\n    bin_usage = 1 - (bins / np.sum(bins))\n    fragmentation_penalty = -0.1 * (1 - bin_usage) * np.log(bin_usage + 1e-9)\n\n    random_noise = 0.1 * (np.random.rand(len(bins)) - 0.5)\n\n    if decay_counter < 100:\n        diversity_weight = 0.5 * np.exp(-0.01 * decay_counter)\n        fragmentation_weight = 0.3 * np.exp(0.01 * decay_counter)\n    else:\n        diversity_weight = 0.3\n        fragmentation_weight = 0.5\n\n    scores = normalized_remaining * decay_factor + proximity_score * diversity_weight + fragmentation_penalty * fragmentation_weight + random_noise\n\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand14",
+      "gen_id": 0,
+      "score": 2098.16,
+      "source": "import numpy as np\n\nexploration_counter = 0  # Tracks the number of assignments for adaptive exploration\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global exploration_counter\n\n    if len(bins) == 0:\n        return np.array([])\n\n    exploration_counter += 1\n\n    # Load-based metric: favor bins with smaller items (minimize fragmentation)\n    # Assume bins are sorted by remaining capacity (largest first for this approach)\n    sorted_bins = np.sort(bins)[::-1]  # Descending order\n    sorted_indices = np.argsort(bins)[::-1]  # Indices to original order\n\n    # Calculate a \"fragmentation penalty\" based on items already in the bin\n    # Assume we track the total size of items placed in each bin (would need to be passed in/updated in actual implementation)\n    # For this example, we'll assume bins is just remaining capacity, so we'll simulate the penalty\n    penalty = np.ones_like(bins) + 0.1 * np.random.rand(len(bins))  # Simulate random penetration effect\n\n    # Time-varying exploration factor (increases early, decreases later)\n    exploration_factor = (np.exp(0.01 * exploration_counter) - 1) / (np.exp(0.01 * exploration_counter) + 1) + 0.5\n    random_noise = exploration_factor * (np.random.rand(len(bins)) - 0.5)\n\n    # Combine load penalty and random noise with dynamic weighting\n    mean_remaining = np.mean(bins)\n    weights = 0.7 * (1 - (bins - mean_remaining) / np.maximum(np.std(bins), 1)) + 0.3\n    scores = weights * penalty + random_noise\n\n    # Restore original order\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand15",
+      "gen_id": 0,
+      "score": 2089.24,
+      "source": "import numpy as np\n\nclass PriorityState:\n    def __init__(self):\n        self.time_counter = 0\n        self.randomness_factor = 0.1\n        self.smoothing = 1e-6\n\ndef priority(item: int, bins: np.ndarray, state: PriorityState = None) -> np.ndarray:\n    if state is None:\n        state = PriorityState()\n\n    if len(bins) == 0:\n        return np.array([])\n\n    state.time_counter += 1\n    verbose_randomness = state.randomness_factor * np.log1p(0.01 * state.time_counter)\n\n    target_capacities = bins + state.smoothing\n    min_distances = np.minimum(target_capacities, 2 * item) - state.smoothing\n\n    load_proxies = np.exp(0.1 * (bins / np.sum(bins))) - 1\n\n    noise = verbose_randomness * (np.random.rand(len(bins)) - 0.5) * load_proxies\n\n    smoothed_load = load_proxies / np.sum(load_proxies)\n\n    scores = (1 / (min_distances + 1e-9)) + verbose_randomness * (noise + smoothed_load)\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand16",
+      "gen_id": 0,
+      "score": 2090.96,
+      "source": "import numpy as np\n\npriority_counter = 0\nexploration_stage = True\nrandomness_factor = 1.0\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global priority_counter, exploration_stage, randomness_factor\n\n    priority_counter += 1\n\n    # Determine if we're in exploration or exploitation stage\n    if priority_counter > 1000:\n        exploration_stage = False\n\n    # Stage 1: Exploration (high randomness to explore options)\n    if exploration_stage:\n        remaining_factor = 1 / (bins - item + 1e-6)\n        bin_load = np.max(bins, initial=0) - bins\n        # Decrease randomness factor over time during exploration\n        randomness_factor = max(0.1, 1.0 - 0.0001 * priority_counter)\n    # Stage 2: Exploitation (emphasize high remaining capacity and low load)\n    else:\n        remaining_factor = 1 / (bins - item + 1e-6)\n        bin_load = np.max(bins, initial=0) - bins\n        load_factor = 0.5 / (1 + np.sqrt(priority_counter))\n        randomness_factor = 0.0\n\n    # Generate noise adjusted by exploration stage\n    noise = np.random.uniform(-0.1, 0.1, len(bins)) * randomness_factor\n\n    # Incorporate adaptive staging: random noise dominates early, remaining capacity dominates late\n    scores = (1 - exploration_stage) * remaining_factor + exploration_stage * noise\n    # Add bin load consideration only after initial exploration phase\n    if priority_counter > 500:\n        scores += (1 - exploration_stage) * 0.1 * bin_load\n\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand17",
+      "gen_id": 0,
+      "score": 2091.24,
+      "source": "import numpy as np\n\npriority_counter = 0\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global priority_counter\n\n    remaining_capacity = bins - item + 1e-6\n    normalized_remaining = remaining_capacity / np.sum(remaining_capacity)\n\n    entropy = -np.sum(normalized_remaining * np.log(normalized_remaining + 1e-6))\n\n    time_factor = 1 + 0.01 * priority_counter\n\n    scores = entropy * normalized_remaining + time_factor * (1 - normalized_remaining)\n\n    priority_counter += 1\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand18",
+      "gen_id": 0,
+      "score": 2091.48,
+      "source": "import numpy as np\ntime_counter = 0  # Tracks the number of assignments\ndiversity_weight = 0.8  # Initial diversity weight\n\ndef priority(item: int, bins: np.ndarray) -> np.ndarray:\n    global time_counter, diversity_weight\n\n    if len(bins) == 0:\n        return np.array([])\n\n    # 1. Fit score (remaining capacity relative to current item)\n    fit_scores = (bins - item) / (np.max(bins) - item + 1e-9)  # Normalized fit score\n\n    # 2. Proximity to item size (avoid small bins becoming fragmented)\n    proximity_scores = np.exp(-0.3 * (np.abs(bins - item) / item - 1))  # Prefer exact fit\n\n    # 3. Adaptive urgency factor (increases weight on fit as more items are placed)\n    urgency_factor = np.log(1 + 0.02 * time_counter) * np.ones_like(bins)\n    time_counter += 1\n\n    # 4. Load penalty (penalize fuller bins)\n    load = bins / np.sum(bins)  # Normalized load\n    load_penalty = -load * np.log(load + 1e-9)\n\n    # 5. Combine metrics with dynamic weighting\n    weights = np.array([0.8 * np.exp(-0.02 * time_counter), 0.1, 0.1])  # Fit, proximity, load\n    scores = weights[0] * fit_scores + weights[1] * proximity_scores + diversity_weight * load_penalty\n\n    return scores"
+    },
+    {
+      "cand_id": "gen00_cand19",
+      "gen_id": 0,
+      "score": 2091.88,
+      "source": "import numpy as np\n\nclass PriorityState:\n    def __init__(self):\n        self.time_counter = 0\n\ndef priority(item: int, bins: np.ndarray, state: PriorityState = None) -> np.ndarray:\n    if state is None:\n        state = PriorityState()\n\n    if len(bins) == 0:\n        return np.array([])\n\n    state.time_counter += 1\n    target_capacities = bins\n    min_distances = np.minimum(target_capacities, 2 * item)\n\n    scores = 1 / (min_distances + 1e-9)\n    return scores"
+    }
+  ]
+}

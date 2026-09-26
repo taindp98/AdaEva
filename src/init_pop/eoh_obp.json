@@ -1,0 +1,124 @@
+{
+  "heuristics": [
+    {
+      "cand_id": "g0_p0",
+      "gen_id": 0,
+      "score": -2091.64,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    remaining_space = bins - item\n    remaining_space = np.maximum(remaining_space, 0)  # Ensure no negative values\n    priority_scores = 1 / (remaining_space + 1e-8)  # Avoid division by zero\n    return priority_scores\n\n"
+    },
+    {
+      "cand_id": "g0_p1",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    remaining_capacities = bins - item\n    return np.maximum(remaining_capacities, 0)\n\n"
+    },
+    {
+      "cand_id": "g0_p2",
+      "gen_id": 0,
+      "score": -2091.64,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    remaining_capacities = bins - item\n    priorities = np.where(remaining_capacities > 0, item / remaining_capacities, np.inf)\n    return priorities\n\n"
+    },
+    {
+      "cand_id": "g0_p3",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    remaining = bins - item\n    priority_scores = np.where(remaining < 0, -np.sqrt(-remaining), np.sqrt(remaining))\n    return priority_scores\n\n"
+    },
+    {
+      "cand_id": "g0_p4",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    remaining = bins\n    mask = remaining >= item\n    priority_scores = np.zeros_like(bins, dtype=np.float64)\n    priority_scores[mask] = np.log(remaining[mask] / item)\n    priority_scores[~mask] = np.inf\n    return priority_scores\n\n"
+    },
+    {
+      "cand_id": "g0_p5",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    remaining = bins - item\n    valid = remaining >= 0\n    priority_scores = np.where(valid, remaining, -np.inf)\n    return priority_scores\n\n"
+    },
+    {
+      "cand_id": "g0_p6",
+      "gen_id": 0,
+      "score": -2091.64,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    return -np.abs(bins - item)\n\n"
+    },
+    {
+      "cand_id": "g0_p7",
+      "gen_id": 0,
+      "score": -1000000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    available_space = bins - item\n    available_space[available_space < 0] = -np.inf  # Negative priority for invalid bins\n    return available_space / item if item > 0 else np.zeros_like(bins)\n\n"
+    },
+    {
+      "cand_id": "g0_p8",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    available = bins - item\n    mask = available > 0\n    available_masked = available[mask]\n    if len(available_masked) > 0:\n        priorities = np.zeros_like(bins)\n        priorities[mask] = (available_masked - available_masked.min()) / (available_masked.max() - available_masked.min()) if (available_masked.max() - available_masked.min()) != 0 else 1.0\n        return priorities\n    else:\n        return np.zeros_like(bins)\n\n"
+    },
+    {
+      "cand_id": "g0_p9",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    available_space = bins - item\n    mask = available_space >= 0\n    priority_scores = np.zeros_like(bins, dtype=float)\n    priority_scores[mask] = available_space[mask]\n    return priority_scores\n\n"
+    },
+    {
+      "cand_id": "g0_p10",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    return (bins - item) / item\n\n"
+    },
+    {
+      "cand_id": "g0_p11",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    is_enough_capacity = bins >= item\n    priorities = np.where(is_enough_capacity, (bins - item) / item, -np.inf)\n    return priorities\n\n"
+    },
+    {
+      "cand_id": "g0_p12",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    residual = bins - item\n    priorities = np.where(residual >= 0, residual / item, -1)\n    return priorities\n\n"
+    },
+    {
+      "cand_id": "g0_p13",
+      "gen_id": 0,
+      "score": -2091.64,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    absolute_differences = np.abs(bins - item)\n    return 1.0 / (absolute_differences + np.finfo(float).eps)\n\n"
+    },
+    {
+      "cand_id": "g0_p14",
+      "gen_id": 0,
+      "score": -2091.64,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    priority_scores = np.zeros_like(bins, dtype=float)\n    mask = bins >= item\n    if np.any(mask):\n        remaining = bins[mask] - item\n        priority_scores[mask] = 1 / (remaining + 1e-10)  # Avoid division by zero\n    return priority_scores\n\n"
+    },
+    {
+      "cand_id": "g0_p15",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    return bins - item\n\n"
+    },
+    {
+      "cand_id": "g0_p16",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    remaining_capacity = bins - item\n    priorities = remaining_capacity / np.sqrt(bins + 1e-6)  # Add small value to avoid division by zero\n    return priorities\n\n"
+    },
+    {
+      "cand_id": "g0_p17",
+      "gen_id": 0,
+      "score": -2091.64,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    remaining = np.maximum(bins - item, 0)\n    return -remaining / bins\n\n"
+    },
+    {
+      "cand_id": "g0_p18",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    epsilon = 1e-10\n    return (bins - item) / (epsilon + (bins - item))\n\n"
+    },
+    {
+      "cand_id": "g0_p19",
+      "gen_id": 0,
+      "score": -5000.0,
+      "source": "import numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    used_capacity = np.sum(item) if isinstance(item, np.ndarray) else item\n    return 1 - (used_capacity / bins)\n\n"
+    }
+  ]
+}

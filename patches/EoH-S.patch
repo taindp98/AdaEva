@@ -1,0 +1,20 @@
+diff --git a/datasets/obp/generate_instances_weibull_training.py b/datasets/obp/generate_instances_weibull_training.py
+index 6e36827..b668bd9 100644
+--- a/datasets/obp/generate_instances_weibull_training.py
++++ b/datasets/obp/generate_instances_weibull_training.py
+@@ -88,6 +88,7 @@ def plot_weibull_distributions(shape_candidates, scale_candidates, num_samples=1
+     plt.grid(True, alpha=0.3)
+     plt.xlim(0, capacity_limit)
+     plt.tight_layout()
++    plt.savefig('weibull_distributions.png', dpi=300, bbox_inches='tight')  # <-- save here
+     plt.show()
+ 
+ 
+@@ -107,4 +108,5 @@ if __name__ == '__main__':
+         scale_candidates
+     )
+ 
+-    pkl.dump(dataset, open('dataset_100_2k_128_5_80.pkl', 'wb'))
++    # pkl.dump(dataset, open('dataset_100_2k_128_5_80.pkl', 'wb'))
++    pkl.dump(dataset, open('dataset_200_2k_128_5_80.pkl', 'wb'))
+\ No newline at end of file

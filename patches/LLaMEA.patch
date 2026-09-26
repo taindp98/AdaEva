@@ -1,0 +1,42 @@
+diff --git a/llamea/llamea.py b/llamea/llamea.py
+index dfc3b7d37..5272f6839 100644
+--- a/llamea/llamea.py
++++ b/llamea/llamea.py
+@@ -477,14 +477,14 @@ class LLaMEA:
+         Returns:
+             Solution: The updated solution with feedback, fitness and error information filled in.
+         """
+-        with contextlib.redirect_stdout(None):
++        with open(os.devnull, 'w') as fnull, contextlib.redirect_stdout(fnull):
+             updated_individual = self.f(individual, self.logger)
+ 
+         return updated_individual
+ 
+     def evaluate_population_fitness(self, new_population):
+         """Evaluate a full population of solutions."""
+-        with contextlib.redirect_stdout(None):
++        with open(os.devnull, 'w') as fnull, contextlib.redirect_stdout(fnull):
+             # pass the new population and the parent population to the evaluation function
+             evaluated_offspring, evaluated_parents = self.f(
+                 new_population, self.population, self.logger
+diff --git a/llamea/llm.py b/llamea/llm.py
+index e4e8728cc..2e5b960b7 100644
+--- a/llamea/llm.py
++++ b/llamea/llm.py
+@@ -163,11 +163,14 @@ class LLM(ABC):
+             dfm = DiffModeManager(base_code, code)
+             code = dfm()
+ 
+-        name = re.findall(
++        names = re.findall(
+             r"(?:def|class)\s*(\w*).*\:",
+             code,
+             re.IGNORECASE,
+-        )[0]
++        )
++        if not names:
++            raise NoCodeException("Could not extract function or class name from the generated code.")
++        name = names[0]
+         desc = self.extract_algorithm_description(message)
+         cs = None
+         if HPO and ConfigurationSpace is not None:

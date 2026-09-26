@@ -1,0 +1,278 @@
+diff --git a/hifo/src/hifo/methods/hifo/evolutionary_navigator.py b/hifo/src/hifo/methods/hifo/evolutionary_navigator.py
+index ee0e546..26b8178 100644
+--- a/hifo/src/hifo/methods/hifo/evolutionary_navigator.py
++++ b/hifo/src/hifo/methods/hifo/evolutionary_navigator.py
+@@ -1,6 +1,8 @@
+ import numpy as np
+ import random
+ 
++from . import hifo_hp
++
+ class EvolutionaryNavigator:
+     
+     def __init__(self):
+@@ -51,7 +53,7 @@ class EvolutionaryNavigator:
+         if self.last_best_fitness is not None:
+             improvement = self.last_best_fitness - current_best
+             
+-            if improvement <= 1e-4:
++            if improvement <= hifo_hp.PROGRESS_EPS:
+                 self.stagnation_count += 1
+                 self.improvement_count = 0
+             else:
+@@ -62,10 +64,10 @@ class EvolutionaryNavigator:
+         
+         low_diversity = False
+         if diversity_history and len(diversity_history) > 0:
+-            if diversity_history[-1] < 0.3:
++            if diversity_history[-1] < hifo_hp.DIVERSITY_THRESHOLD:
+                 low_diversity = True
+-        
+-        if self.stagnation_count >= 3:
++
++        if self.stagnation_count >= hifo_hp.STAGNATION_THRESHOLD:
+             regime = "exploration"
+             design_directive = random.choice(self.design_directives["exploration"])
+             
+@@ -73,7 +75,7 @@ class EvolutionaryNavigator:
+             regime = "exploration"
+             design_directive = random.choice(self.design_directives["exploration"])
+             
+-        elif self.improvement_count >= 2:
++        elif self.improvement_count >= hifo_hp.PROGRESS_THRESHOLD:
+             regime = "exploitation"
+             design_directive = random.choice(self.design_directives["exploitation"])
+             
+diff --git a/hifo/src/hifo/methods/hifo/hifo.py b/hifo/src/hifo/methods/hifo/hifo.py
+index cad582c..b6126e4 100644
+--- a/hifo/src/hifo/methods/hifo/hifo.py
++++ b/hifo/src/hifo/methods/hifo/hifo.py
+@@ -105,6 +105,16 @@ class HiFo:
+                     json.dump(population, f, indent=5)
+                 n_start = 0
+ 
++                if not population:
++                    raise RuntimeError(
++                        "HiFo initial population is EMPTY: every candidate evaluated "
++                        "to None (see 'Parallel time out .' above). This means each "
++                        "offspring's LLM-generation + evaluation did not finish within "
++                        "the per-task budget (eva_timeout + 15s). Increase eva_timeout "
++                        "so it covers the LLM call (up to llm_timeout) plus the eval, or "
++                        "reduce pop_size / speed up the LLM. Aborting before the empty "
++                        "population would crash population_management/json.dump.")
++
+         hifo_prompt_logs = []
+         n_op = len(self.operators)
+ 
+@@ -126,6 +136,11 @@ class HiFo:
+             with open(filename, 'w') as f:
+                 json.dump(population, f, indent=5)
+ 
++            if not population:
++                raise RuntimeError(
++                    f"HiFo population became EMPTY at generation {pop + 1}: every "
++                    "surviving/offspring candidate evaluated to None. Increase "
++                    "eva_timeout (must cover LLM-generation + evaluation per offspring).")
+             filename = self.output_path + "/results/pops_best/population_generation_" + str(pop + 1) + ".json"
+             with open(filename, 'w') as f:
+                 json.dump(population[0], f, indent=5)
+diff --git a/hifo/src/hifo/methods/hifo/hifo_interface_EC.py b/hifo/src/hifo/methods/hifo/hifo_interface_EC.py
+index ccc0d78..d3ec672 100644
+--- a/hifo/src/hifo/methods/hifo/hifo_interface_EC.py
++++ b/hifo/src/hifo/methods/hifo/hifo_interface_EC.py
+@@ -4,6 +4,7 @@ from .hifo_evolution import Evolution
+ import warnings
+ from joblib import Parallel, delayed
+ from .evaluator_accelerate import add_numba_decorator
++from . import hifo_hp
+ import re
+ import concurrent.futures
+ 
+@@ -28,7 +29,7 @@ class InterfaceEC():
+         from .insight_pool import InsightPool
+         from .evolutionary_navigator import EvolutionaryNavigator
+         
+-        self.insight_pool = InsightPool(max_size=30)
++        self.insight_pool = InsightPool(max_size=hifo_hp.POOL_CAPACITY)
+         self.navigator = EvolutionaryNavigator()
+         
+         self.best_fitness_history = []
+@@ -109,11 +110,11 @@ class InterfaceEC():
+         normalized_performance = (population_worst - offspring_fitness) / (population_worst - population_best)
+         
+         if offspring_fitness <= population_best:
+-            effectiveness = 0.8 + 0.2 * normalized_performance
++            effectiveness = hifo_hp.CREDIT_BEST + 0.2 * normalized_performance
+         elif offspring_fitness <= population_avg:
+-            effectiveness = 0.2 + 0.6 * normalized_performance
++            effectiveness = hifo_hp.CREDIT_INC + 0.6 * normalized_performance
+         else:
+-            effectiveness = -0.3 + 0.5 * normalized_performance
++            effectiveness = hifo_hp.CREDIT_PEN + 0.5 * normalized_performance
+             
+         return max(-1.0, min(1.0, effectiveness))
+     
+@@ -141,7 +142,7 @@ class InterfaceEC():
+             diversity_history=self.diversity_history
+         )
+         
+-        insights = self.insight_pool.get_tips(k=3)
++        insights = self.insight_pool.get_tips(k=hifo_hp.SELECTION_COUNT)
+         
+         offspring = {
+             'algorithm': None,
+@@ -211,9 +212,12 @@ class InterfaceEC():
+                 if n_retry > 1:
+                     break
+                 
++            # Inner cap: bounds ONLY the candidate evaluation. Falls back to the
++            # paras eva_timeout unless a driver decouples it via hifo_hp.EVAL_TIMEOUT.
++            eval_timeout = hifo_hp.EVAL_TIMEOUT if hifo_hp.EVAL_TIMEOUT is not None else self.timeout
+             with concurrent.futures.ThreadPoolExecutor() as executor:
+                 future = executor.submit(self.interface_eval.evaluate, code)
+-                fitness = future.result(timeout=self.timeout)
++                fitness = future.result(timeout=eval_timeout)
+                 offspring['objective'] = np.round(fitness, 5)
+                 future.cancel()
+                 
+@@ -239,16 +243,18 @@ class InterfaceEC():
+         self.insight_pool.update_generation(len(self.best_fitness_history))
+         
+         results = []
++        # Outer budget: bounds the WHOLE offspring task (LLM generation + eval).
++        # Falls back to eva_timeout+15 unless a driver decouples it via
++        # hifo_hp.TASK_BUDGET (which should be >= llm_timeout + eval cap + margin).
++        task_budget = hifo_hp.TASK_BUDGET if hifo_hp.TASK_BUDGET is not None else self.timeout + 15
+         try:
+-            results = Parallel(n_jobs=self.n_p, timeout=self.timeout+15)(
++            results = Parallel(n_jobs=self.n_p, timeout=task_budget)(
+                 delayed(self.get_offspring)(pop, operator) for _ in range(self.pop_size)
+             )
+         except Exception as e:
+             if self.debug:
+                 print(f"Error: {e}")
+             print("Parallel time out .")
+-            
+-        time.sleep(2)
+ 
+         out_p = []
+         out_off = []
+diff --git a/hifo/src/hifo/methods/hifo/insight_pool.py b/hifo/src/hifo/methods/hifo/insight_pool.py
+index 8d43bb5..9c88863 100644
+--- a/hifo/src/hifo/methods/hifo/insight_pool.py
++++ b/hifo/src/hifo/methods/hifo/insight_pool.py
+@@ -3,6 +3,8 @@ import random
+ import math
+ from collections import deque
+ 
++from . import hifo_hp
++
+ class InsightPool:
+     
+     
+@@ -32,7 +34,7 @@ class InsightPool:
+     def add_tip(self, tip, tags=None):
+      
+         for existing_tip in self.tips:
+-            if self._similarity(tip, existing_tip) > 0.7:
++            if self._similarity(tip, existing_tip) > hifo_hp.NOVELTY_THRESHOLD:
+                 return False
+         
+         if len(self.tips) >= self.max_size:
+@@ -51,9 +53,7 @@ class InsightPool:
+     
+     def _calculate_eviction_score(self, tip_stats):
+ 
+-        PROBATION_USAGE_COUNT = 3  # probation usage count
+-
+-        if tip_stats['used_count'] < PROBATION_USAGE_COUNT:
++        if tip_stats['used_count'] < hifo_hp.PROBATION_USAGE_COUNT:
+             return float('inf')  # grant "probation immunity"
+ 
+     
+@@ -63,8 +63,7 @@ class InsightPool:
+         generations_idle = self.current_generation - tip_stats.get('last_used_generation', self.current_generation)
+         
+         # use a decay function to penalize effectiveness over time
+-        DECAY_RATE = 0.01
+-        time_penalty = generations_idle * DECAY_RATE
++        time_penalty = generations_idle * hifo_hp.DECAY_RATE
+         
+   
+         final_score = effectiveness_score - time_penalty
+@@ -150,8 +149,8 @@ class InsightPool:
+                 
+                 
+                 effectiveness_score = stats['effectiveness']
+-                usage_penalty = -0.1 * math.log(stats['used_count'] + 1)
+-                recency_bonus = 0.2 if (self.current_generation - stats['last_used_generation']) <= 2 else 0
++                usage_penalty = -hifo_hp.USAGE_PENALTY_WEIGHT * math.log(stats['used_count'] + 1)
++                recency_bonus = hifo_hp.RECENCY_BONUS if (self.current_generation - stats['last_used_generation']) <= hifo_hp.RECENCY_WINDOW else 0
+                 
+                 total_score = effectiveness_score + usage_penalty + recency_bonus
+                 scored_tips.append((tip, total_score))
+@@ -180,7 +179,7 @@ class InsightPool:
+             stats['total_effectiveness'] += effectiveness
+             
+ 
+-            alpha = 0.3  # smoothing factor
++            alpha = hifo_hp.EMA_ALPHA  # smoothing factor
+             old_eff = stats['effectiveness']
+             stats['effectiveness'] = (1-alpha) * old_eff + alpha * effectiveness
+             
+diff --git a/hifo/src/hifo/methods/hifo/hifo_hp.py b/hifo/src/hifo/methods/hifo/hifo_hp.py
+new file mode 100644
+index 0000000..679e4da
+--- /dev/null
++++ b/hifo/src/hifo/methods/hifo/hifo_hp.py
+@@ -0,0 +1,50 @@
++"""Tunable HiFo-Prompt hyperparameters (the paper's default configuration).
++
++These were previously hard-coded literals scattered across ``insight_pool.py``,
++``evolutionary_navigator.py`` and ``hifo_interface_EC.py``. They are collected
++here as module-level attributes so a driver (e.g. ``src/reprod/hifo_obp.py``) can
++override them at runtime BEFORE the engine builds its InsightPool / Navigator:
++
++    import hifo.methods.hifo.hifo_hp as hifo_hp
++    hifo_hp.POOL_CAPACITY = 30
++
++The call sites read ``hifo_hp.<NAME>`` at call time (not ``from hifo_hp import
++<NAME>``), so an override takes effect for every subsequent read. Every default
++below equals the value stated in Chen et al. (2026), HiFo-Prompt, so importing
++this module changes nothing on its own.
++"""
++
++# --- Hindsight: Insight Pool -------------------------------------------------
++POOL_CAPACITY = 30            # C_pool   — max insights retained
++NOVELTY_THRESHOLD = 0.7       # theta_novelty — Jaccard admission cutoff
++SELECTION_COUNT = 3           # s        — top-s insights injected per generation
++USAGE_PENALTY_WEIGHT = 0.1    # w_u      — coeff of -w_u*log(uses+1)
++RECENCY_BONUS = 0.2           # tau_r    — bonus for recently-used insights
++RECENCY_WINDOW = 2            # T_w      — generations the recency bonus spans
++EMA_ALPHA = 0.3               # alpha    — EMA rate for effectiveness updates
++DECAY_RATE = 0.01             # R_decay  — eviction-score time decay
++PROBATION_USAGE_COUNT = 3     # T_usage  — uses below which an insight is immune
++
++# --- Credit assignment tiers (Eq. 3 intercepts) ------------------------------
++CREDIT_BEST = 0.8             # beta_best — offspring beats population best
++CREDIT_INC = 0.2             # beta_inc  — offspring beats population average
++CREDIT_PEN = -0.3            # beta_pen  — offspring below average (penalty)
++
++# --- Timeouts: decouple the eval cap from the whole-offspring budget ---------
++# The stock package used ONE value (paras eva_timeout) for BOTH the inner eval
++# cap (future.result timeout) AND the outer per-offspring joblib budget
++# (eva_timeout+15) that must also cover the LLM generation. That coupling meant
++# enlarging the budget to fit the LLM also enlarged the eval cap, letting a slow
++# candidate eval blow the whole batch. These two override that split when set:
++#   EVAL_TIMEOUT -> caps ONLY the candidate evaluation (kills a slow/looping one)
++#   TASK_BUDGET  -> the whole get_offspring task = LLM generation + eval + margin
++# Left as None (the default), the package falls back to its original single-knob
++# behavior (self.timeout and self.timeout+15), so other callers are unaffected.
++EVAL_TIMEOUT = None    # seconds; None -> use paras eva_timeout
++TASK_BUDGET = None     # seconds; None -> use paras eva_timeout + 15
++
++# --- Foresight: Evolutionary Navigator ---------------------------------------
++PROGRESS_EPS = 1e-4           # delta g   — min best-fitness gain counted as progress
++STAGNATION_THRESHOLD = 3      # tau_stag  — stagnant gens before forcing Explore
++PROGRESS_THRESHOLD = 2        # tau_prog  — progress gens before forcing Exploit
++DIVERSITY_THRESHOLD = 0.3     # delta_p   — phenotypic-diversity floor for Explore
