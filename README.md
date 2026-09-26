@@ -28,8 +28,8 @@ These are compared against two static baselines, also included:
 
 | Baseline | Allocation | Code |
 | :--- | :--- | :--- |
-| **Uniform-$k$** (static partial evaluation) | every candidate on a fixed subset of $k$ instances ($k = 1$ gives Uniform-1) | [`src/fixed/`](src/fixed/) |
-| **Uniform-$K$** (full evaluation) | every candidate on the whole training pool | [`src/full/`](src/full/) |
+| **Fixed-$k$** (static partial evaluation) | every candidate on a fixed subset of $k$ instances ($k = 1$ gives Fixed-1) | [`src/fixed/`](src/fixed/) |
+| **Fixed-$K$** (full evaluation) | every candidate on the whole training pool | [`src/full/`](src/full/) |
 
 **Host frameworks × domains.** EoH and HiFo-Prompt are run on three combinatorial problems: Online Bin Packing (**OBP**), TSP with guided local search (**TSP-GLS**) and Flow-Shop Scheduling with GLS (**FSSP-GLS**). LLaMEA is run on continuous black-box optimisation (**BBOB**, 24 noiseless functions in 5-D).
 
@@ -44,7 +44,7 @@ The code follows the notation of the paper:
 | $\mathcal{I} = (x_1,\dots,x_K)$ | Shared, ordered training instance pool | `--n-instances` ($K$); instance order printed at start-up by `print_instance_order` |
 | $f(h;x)$ | Cost of heuristic $h$ on instance $x$ (minimised) | host evaluator from `packages/LLM4AD`, `packages/HiFo-Prompt` or `packages/LLaMEA` |
 | $\hat g(h;n)$ | Empirical mean cost on the prefix $x_1,\dots,x_n$ | `Config.costs_by_inst` in [`src/utils/config.py`](src/utils/config.py) |
-| $B$ | Global budget of candidate–instance evaluations | `--budget-cap`; defaults to `pop_size × ref_max_generations × n_instances` (the cost of Uniform-$K$ over the reference horizon) |
+| $B$ | Global budget of candidate–instance evaluations | `--budget-cap`; defaults to `pop_size × ref_max_generations × n_instances` (the cost of Fixed-$K$ over the reference horizon) |
 | $M$ | Population size | `--pop-size` (EoH/HiFo), `--n-parents` (LLaMEA) |
 | $\mathcal{U}^{(t)}$ | Pool at generation $t$: parents ∪ offspring | `combined` in [`src/racing/base.py`](src/racing/base.py) |
 | $\mathcal{U}^{(t,r)}$ | Contenders alive at racing step $r$ | `Config.alive` |
@@ -100,8 +100,8 @@ AdaEva/
 │   │   ├── hifo_{obp,tsp_gls,fssp_gls}.py
 │   │   └── llamea_bbob.py
 │   ├── sh/                # AdaEva-S runners (same task grid; hifo_common.py = shared HiFo glue)
-│   ├── fixed/             # Uniform-k baseline (--K, --instance-mode fixed|random)
-│   ├── full/              # Uniform-K baseline (full evaluation)
+│   ├── fixed/             # Fixed-k baseline (--K, --instance-mode fixed|random)
+│   ├── full/              # Fixed-K baseline (full evaluation)
 │   ├── init_pop/          # Fixed initial populations used with --fix-init-pop
 │   ├── analyses/          # Held-out tests, validation re-evaluation, ranking & statistics analyses
 │   └── utils/
@@ -264,10 +264,10 @@ python src/sh/eoh_tsp_gls.py \
 ### Baselines
 
 ```bash
-# Uniform-k: every candidate on k=4 fixed instances
+# Fixed-k: every candidate on k=4 fixed instances
 python src/fixed/eoh_tsp_gls.py --pop-size 10 --max-generations 20 --K 4 --instance-mode fixed --fix-init-pop
 
-# Uniform-K: every candidate on the full training pool
+# Fixed-K: every candidate on the full training pool
 python src/full/eoh_tsp_gls.py --pop-size 10 --max-generations 20 --n-instances 64
 ```
 
@@ -289,7 +289,7 @@ python src/full/eoh_tsp_gls.py --pop-size 10 --max-generations 20 --n-instances 
 | `--save-pop` | off | Refill the population with eliminated candidates when survivors < $M$ |
 | `--deterministic` | off | Treat evaluation as deterministic; by default each instance is paired with a seed that is shared by all candidates (irace-style stochastic tasks) |
 | `--sh-min-instances` / `--sh-reduction-factor` | 5 / 1.33 | AdaEva-S first-round budget and $\eta$ |
-| `--K`, `--instance-mode` | 1, `fixed` | Uniform-$k$ subset size and fixed vs. resampled subset |
+| `--K`, `--instance-mode` | 1, `fixed` | Fixed-$k$ subset size and fixed vs. resampled subset |
 | `--fix-init-pop` | off | Start from `src/init_pop/<framework>_<task>.json` |
 | `--seed` | 0 | Run seed (instances, LLM cache salt) |
 | `--num-cores` / `--num-threads` | 4 | Parallel evaluation workers / LLM sampler threads |
@@ -307,7 +307,7 @@ Each run writes to `.logs/<label>/<timestamp>_<seed>_<tag>/`:
 | `race_log.jsonl`, `race_step_trace.jsonl`, `race_summary.jsonl` | Race decisions per step and per generation (AdaEva-R/S) |
 | `candidate_log.jsonl`, `all_candidates.jsonl` | Candidate lifecycle, genealogy and status (survived / eliminated / crashed / timeout) |
 | `population_diversity_log.jsonl`, `fitness_reliability_log.jsonl` | Diversity and partial-vs-full score diagnostics |
-| `valid_trajectory_{mean_rank,mean_cost}.json` | Held-out validation of the logged incumbents (`valid_trajectory.json` for the Uniform baselines) |
+| `valid_trajectory_{mean_rank,mean_cost}.json` | Held-out validation of the logged incumbents (`valid_trajectory.json` for the Fixed baselines) |
 | `llm_prompts.jsonl`, `timings.json`, `run_meta.json`, `terminal.txt` | LLM I/O and token usage, wall-clock timings, configuration, console log |
 
 ---
