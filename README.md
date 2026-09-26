@@ -331,11 +331,11 @@ python src/analyses/test_obp_slice.py      --exp .logs/race/obp/<run> --has-incu
 ## Citation
 
 ```bibtex
-@inproceedings{anonymous2026adaeva,
+@inproceedings{anonymous2027adaeva,
   title     = {{AdaEva}: Accelerating {LLM}-Driven Algorithm Design with Adaptive Partial Evaluation},
   author    = {Anonymous},
   booktitle = {Submitted to the International Conference on Learning Representations (ICLR)},
-  year      = {2026},
+  year      = {2027},
   note      = {Under double-blind review}
 }
 ```
