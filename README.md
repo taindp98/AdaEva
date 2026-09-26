@@ -322,19 +322,9 @@ python src/analyses/test_tsplib.py         --exp .logs/race/tsp_gls/<run> --has-
 python src/analyses/test_fssp_taillard.py  --exp .logs/race/fssp_gls/<run> --has-incumbent
 python src/analyses/test_bbob.py           --exp .logs/racing_llamea_bbob/<run> --has-incumbent
 python src/analyses/test_obp_slice.py      --exp .logs/race/obp/<run> --has-incumbent
-
-# Re-evaluate candidates on the full training pool (search-time ranking quality)
-python src/analyses/eval_racing_tsp_ranking.py  --exp .logs/race/tsp_gls/<run>
-python src/analyses/eval_uniform_tsp_ranking.py --exp .logs/eoh/tiny_tsp_gls/<run>
-
-# Friedman–Conover decision geometry across runs
-python src/analyses/statistics_investigation.py --root . --runs .logs/race/tsp_gls/<run> ...
 ```
 
-- `test_*.py` / `test_*_slice.py`: evaluation on external benchmarks, either of the final heuristic or of checkpoints along the run.
-- `eval_{tsp,obp,fssp,bbob}.py`: validation-set re-evaluation, called automatically at the end of a run.
-- `eval_{racing,uniform,esh}_*_ranking.py`: partial vs. full-pool ranking agreement.
-- `statistics_investigation.py`: concordance → omnibus → post-hoc → elimination chain.
+`test_*.py` evaluates the final heuristic; `test_*_slice.py` evaluates checkpoints along the run.
 
 ---
 
