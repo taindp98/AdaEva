@@ -2,9 +2,10 @@
 
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Review](https://img.shields.io/badge/Review-Double--Blind-lightgrey.svg)]()
 
-> Anonymous code release accompanying the ICLR submission *"AdaEva: Accelerating LLM-Driven Algorithm Design with Adaptive Partial Evaluation"*. All author and institution information has been removed for double-blind review.
+> Code release accompanying the study *"AdaEva: Accelerating LLM-Driven Algorithm Design with Adaptive Partial Evaluation"*.
+
+![AdaEva](./asserts/AdaEva.png)
 
 ---
 
@@ -327,18 +328,6 @@ python src/analyses/test_obp_slice.py      --exp .logs/race/obp/<run> --has-incu
 `test_*.py` evaluates the final heuristic; `test_*_slice.py` evaluates checkpoints along the run.
 
 ---
-
-## Citation
-
-```bibtex
-@inproceedings{anonymous2027adaeva,
-  title     = {{AdaEva}: Accelerating {LLM}-Driven Algorithm Design with Adaptive Partial Evaluation},
-  author    = {Anonymous},
-  booktitle = {Submitted to the International Conference on Learning Representations (ICLR)},
-  year      = {2027},
-  note      = {Under double-blind review}
-}
-```
 
 ## License
 
